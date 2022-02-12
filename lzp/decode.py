@@ -9,6 +9,9 @@ class RAMPatchStream:
     """Treats multiple input and output files as a single, contiguous stream.
     This implementation keeps everything in memory."""
     def __init__(self, sources, checksums):
+        ls, lc = len(sources), len(checksums)
+        if ls != lc:
+            raise ValueError("should have {lc} sources, have {ls}")
         self._buffer = bytearray()
         for source, expected in zip(sources, checksums):
             with open(source, 'rb') as f:
