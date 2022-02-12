@@ -3,7 +3,7 @@ from os import chdir
 from pytest import fixture, raises
 
 from lzp import __version__
-from lzp.decode import RAMPatchStream
+from lzp.decode import number, process, RAMPatchStream
 
 
 FILES = {
@@ -24,7 +24,22 @@ FILES = {
         "D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF",
         "E0 E1 E2 E3 E4 E5 E6 E7 E8 E9 EA EB EC ED EE EF",
         "F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 FA"
-    )
+    ),
+    # the corresponding value is equivalent to 104 (modulo 251).
+    # When used for movement, we therefore move 105 steps.
+    'bignum_8.bin': ("80 81 82 83 84 85 86 87",),
+    'forward_17.bin': (
+        "4C 5A 50 01", # LZP 1 source
+        "3A 3F 7A 90", # checksum for count_251
+        "02 80 81 82 83 84 85 86 87" # forward that many bytes and copy 2
+    ),
+    'fresult_2.bin': ("69 6A",),
+    'backward_17.bin': (
+        "4C 5A 50 01", # LZP 1 source
+        "3A 3F 7A 90", # checksum for count_251
+        "82 80 81 82 83 84 85 86 87" # forward that many bytes and copy 2
+    ),
+    'bresult_2.bin': ("92 93",),
 }
 
 
@@ -39,11 +54,43 @@ def setup_dir(tmp_path):
     chdir(tmp_path)
 
 
+def _check_equal_files(a, b):
+    with open(a, 'rb') as f:
+        ad = f.read()
+    with open(b, 'rb') as f:
+        bd = f.read()
+    assert ad == bd
+
+
 def test_make_stream(setup_dir):
     RAMPatchStream(('count_251.bin',), (977238672,))
     with raises(ValueError):
         RAMPatchStream(('count_251.bin',), (0,))
 
+
+def test_big_number(setup_dir):
+    patcher = RAMPatchStream(('count_251.bin',), (977238672,))
+    with open('bignum_8.bin', 'rb') as f:
+        assert number(f, 0) == 0xe182840608080
+
+
+def test_wrong_file(setup_dir):
+    with raises(ValueError):
+        process('forward_17.bin', 'out.bin')
+    with raises(ValueError):
+        process('forward_17.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
+    with raises(ValueError):
+        process('forward_17.bin', 'out.bin', 'forward_17.bin')
+
+
+def test_forward(setup_dir):
+    process('forward_17.bin', 'out.bin', 'count_251.bin')
+    _check_equal_files('out.bin', 'fresult_2.bin')
+
+
+def test_forward(setup_dir):
+    process('backward_17.bin', 'out.bin', 'count_251.bin')
+    _check_equal_files('out.bin', 'bresult_2.bin')
 
 
 def test_version():
