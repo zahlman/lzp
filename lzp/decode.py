@@ -43,11 +43,19 @@ class RAMPatchStream:
         self._position = (self._position + distance) % len(self._buffer)
 
 
+def byte(stream):
+    return int.from_bytes(stream.read(1), 'big')
+
+
+def quad(stream):
+    return int.from_bytes(stream.read(4), 'big')
+
+
 def number(source, result):
     shift, more = 0, 0x80
     while more:
-        byte = source.read(1)
-        value, more = byte & 0x7f, byte & 0x80
+        b = byte(source)
+        more, value = b & 0x80, b & 0x7f
         result |= (value << shift)
         shift += 7
     return result
@@ -67,14 +75,6 @@ def command(source, destination, value):
         destination.move(number(source, 1) * (-1 if direction else 1))
         destination.copy(value)
     return True
-
-
-def byte(stream):
-    return int.from_bytes(stream.read(1), 'big')
-
-
-def quad(stream):
-    return int.from_bytes(stream.read(4), 'big')
 
 
 def process(patch, out, *sources):
