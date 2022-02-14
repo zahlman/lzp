@@ -1,7 +1,8 @@
+# standard library
 from os import chdir
-
+# test framework
 from pytest import fixture, raises
-
+# current package
 from lzp import __version__
 from lzp.decode import number, process, RAMPatchStream
 
@@ -27,40 +28,41 @@ FILES = {
     ),
     # the corresponding value is equivalent to 104 (modulo 251).
     # When used for movement, we therefore move 105 steps.
-    'bignum_8.bin': ("80 81 82 83 84 85 86 87",),
-    'forward_17.bin': (
+    'bignum_8.bin': ("80 81 82 83 84 85 86 07",),
+    # Example patch files, to test header-check and commands.
+    'forward_18.bin': (
         "4C 5A 50 01", # LZP 1 source
         "3A 3F 7A 90", # checksum for count_251
-        "02 80 81 82 83 84 85 86 87" # forward that many bytes and copy 2
+        "02 80 81 82 83 84 85 86 07 00" # forward that many bytes and copy 2
     ),
     'fresult_2.bin': ("69 6A",),
-    'backward_17.bin': (
+    'backward_18.bin': (
         "4C 5A 50 01", # LZP 1 source
         "3A 3F 7A 90", # checksum for count_251
-        "82 80 81 82 83 84 85 86 87" # forward that many bytes and copy 2
+        "82 80 81 82 83 84 85 86 07 00" # forward that many bytes and copy 2
     ),
     'bresult_2.bin': ("92 93",),
     'earlyend_18.bin': (
         "4C 5A 50 01", # LZP 1 source
         "3A 3F 7A 90", # checksum for count_251
-        "00 82 80 81 82 83 84 85 86 87" # end of stream before command
+        "00 82 80 81 82 83 84 85 86 07" # end of stream before command
     ),
     'eresult_0.bin': (),
-    'blockcopy_11.bin': (
+    'blockcopy_12.bin': (
         "4C 5A 50 01", # LZP 1 source
         "3A 3F 7A 90", # checksum for count_251
-        "80 FA 01" # copy 250+1 bytes, then done
+        "80 FA 01 00" # copy 250+1 bytes, then done
     ),
-    'copysingle_14.bin': (
+    'copysingle_15.bin': (
         "4C 5A 50 01", # LZP 1 source
         "3A 3F 7A 90", # checksum for count_251
-        "01 4C 01 5A 01 50" # copy three literal bytes one at a time 
+        "01 4C 01 5A 01 50 00" # copy three literal bytes one at a time
     ),
     'firstthree_3.bin': ("4C 5A 50",),
-    'copybatch_13.bin': (
+    'copybatch_14.bin': (
         "4C 5A 50 01", # LZP 1 source
         "3A 3F 7A 90", # checksum for count_251
-        "81 00 4C 5A 50" # copy three bytes
+        "81 00 4C 5A 50 00" # copy three bytes
     ),
 }
 
@@ -98,20 +100,20 @@ def test_big_number(setup_dir):
 
 def test_wrong_file(setup_dir):
     with raises(ValueError):
-        process('forward_17.bin', 'out.bin')
+        process('forward_18.bin', 'out.bin')
     with raises(ValueError):
-        process('forward_17.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
+        process('forward_18.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
     with raises(ValueError):
-        process('forward_17.bin', 'out.bin', 'forward_17.bin')
+        process('forward_18.bin', 'out.bin', 'forward_18.bin')
 
 
 def test_forward(setup_dir):
-    process('forward_17.bin', 'out.bin', 'count_251.bin')
+    process('forward_18.bin', 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', 'fresult_2.bin')
 
 
 def test_forward(setup_dir):
-    process('backward_17.bin', 'out.bin', 'count_251.bin')
+    process('backward_18.bin', 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', 'bresult_2.bin')
 
 
@@ -121,17 +123,17 @@ def test_earlyend(setup_dir):
 
 
 def test_blockcopy(setup_dir):
-    process('blockcopy_11.bin', 'out.bin', 'count_251.bin')
+    process('blockcopy_12.bin', 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', 'count_251.bin')
 
 
 def test_singlecopy(setup_dir):
-    process('copysingle_14.bin', 'out.bin', 'count_251.bin')
+    process('copysingle_15.bin', 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', 'firstthree_3.bin')
 
 
 def test_batchcopy(setup_dir):
-    process('copybatch_13.bin', 'out.bin', 'count_251.bin')
+    process('copybatch_14.bin', 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', 'firstthree_3.bin')
 
 

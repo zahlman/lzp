@@ -1,3 +1,5 @@
+# standard library
+from functools import partial
 from zlib import adler32 as compute_checksum
 
 
@@ -46,12 +48,19 @@ class RAMPatchStream:
         self._position = (self._position + distance) % len(self._buffer)
 
 
-def byte(stream):
-    return int.from_bytes(stream.read(1), 'big')
+def raw(amount, stream):
+    data = stream.read(amount)
+    if len(data) < amount:
+        raise IOError("premature end of stream")
+    return data
 
 
-def quad(stream):
-    return int.from_bytes(stream.read(4), 'big')
+def _data(amount, stream):
+    return int.from_bytes(raw(amount, stream), 'big')
+
+
+byte = partial(_data, 1)
+quad = partial(_data, 4)
 
 
 def number(source, result):
@@ -73,7 +82,7 @@ def command(source, destination, value):
             return False
     elif value == 1:
         amount = number(source, 3) if direction else 1
-        destination.append(source.read(amount))
+        destination.append(raw(amount, source))
     else:
         destination.move(number(source, 1) * (-1 if direction else 1))
         destination.copy(value)
@@ -82,7 +91,7 @@ def command(source, destination, value):
 
 def process(patch, out, *sources):
     with open(patch, 'rb') as f:
-        if f.read(3) != b'LZP':
+        if raw(3, f) != b'LZP':
             raise ValueError('bad signature')
         source_count = byte(f)
         checksums = [quad(f) for _ in range(source_count)]
