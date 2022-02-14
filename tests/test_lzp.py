@@ -1,7 +1,9 @@
 # standard library
 from os import chdir
 # test framework
-from pytest import fixture, raises
+from pytest import fixture, mark, raises
+parametrize = mark.parametrize
+del mark
 # current package
 from lzp import __version__
 from lzp.decode import number, process, RAMPatchStream
@@ -107,34 +109,23 @@ def test_wrong_file(setup_dir):
         process('forward_18.bin', 'out.bin', 'forward_18.bin')
 
 
-def test_forward(setup_dir):
-    process('forward_18.bin', 'out.bin', 'count_251.bin')
-    _check_equal_files('out.bin', 'fresult_2.bin')
-
-
-def test_backward(setup_dir):
-    process('backward_18.bin', 'out.bin', 'count_251.bin')
-    _check_equal_files('out.bin', 'bresult_2.bin')
-
-
-def test_earlyend(setup_dir):
-    process('earlyend_18.bin', 'out.bin', 'count_251.bin')
-    _check_equal_files('out.bin', 'eresult_0.bin')
-
-
-def test_blockcopy(setup_dir):
-    process('blockcopy_12.bin', 'out.bin', 'count_251.bin')
-    _check_equal_files('out.bin', 'count_251.bin')
-
-
-def test_singlecopy(setup_dir):
-    process('copysingle_15.bin', 'out.bin', 'count_251.bin')
-    _check_equal_files('out.bin', 'firstthree_3.bin')
-
-
-def test_batchcopy(setup_dir):
-    process('copybatch_14.bin', 'out.bin', 'count_251.bin')
-    _check_equal_files('out.bin', 'firstthree_3.bin')
+@parametrize("patch,expected", (
+    # move forward command
+    ('forward_18.bin', 'fresult_2.bin'),
+    # move backward command
+    ('backward_18.bin', 'bresult_2.bin'),
+    # end command not at end of file
+    ('earlyend_18.bin', 'eresult_0.bin'),
+    # block copy
+    ('blockcopy_12.bin', 'count_251.bin'),
+    # 3 literal bytes, one at a time
+    ('copysingle_15.bin', 'firstthree_3.bin'),
+    # 3 literal bytes, as a group
+    ('copybatch_14.bin', 'firstthree_3.bin')
+))
+def test_patch(setup_dir, patch, expected):
+    process(patch, 'out.bin', 'count_251.bin')
+    _check_equal_files('out.bin', expected)
 
 
 def test_version():
