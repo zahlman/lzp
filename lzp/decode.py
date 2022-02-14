@@ -9,22 +9,9 @@ def display_checksum(value):
 
 class RAMPatchStream:
     """Treats multiple input and output files as a single, contiguous stream.
-    This implementation keeps everything in memory."""
-    def __init__(self, sources, checksums):
-        ls, lc = len(sources), len(checksums)
-        if ls != lc:
-            raise ValueError("should have {lc} sources, have {ls}")
-        self._buffer = bytearray()
-        for source, expected in zip(sources, checksums):
-            with open(source, 'rb') as f:
-                data = f.read()
-            actual = compute_checksum(data)
-            if actual != expected:
-                source_err = f'bad checksum for {source}'
-                expected_err = f'expected: <{display_checksum(expected)}>'
-                actual_err = f'actual: <{display_checksum(actual)}>'
-                raise ValueError(f'{source_err} ({expected_err} {actual_err})')
-            self._buffer.extend(data)
+    This implementation simply keeps everything in memory."""
+    def __init__(self, sources):
+        self._buffer = bytearray().join(sources)
         self._position = 0
         self._out_start = len(self._buffer)
 
@@ -53,6 +40,11 @@ def raw(amount, stream):
     if len(data) < amount:
         raise IOError("premature end of stream")
     return data
+
+
+def contents(filename):
+    with open(filename, 'rb') as f:
+        return f.read()
 
 
 def _data(amount, stream):
@@ -89,13 +81,31 @@ def command(source, destination, value):
     return True
 
 
-def process(patch, out, *sources):
+def _verify(f, names, actual):
+    # TODO: `zlib.adler32` requires a bytes-like object, so the whole file
+    # has to be read into memory even if we want to use a `PatchStream` that
+    # checks the files on demand (to save RAM).
+    if raw(3, f) != b'LZP':
+        raise ValueError('bad signature')
+    source_count = byte(f)
+    if len(actual) != source_count:
+        raise ValueError("should have {lc} sources, have {ls}")
+    expected = [quad(f) for _ in range(source_count)]
+    for name, a, e in zip(names, actual, expected):
+        if a != e:
+            source_err = f'bad checksum for {name}'
+            expected_err = f'expected: <display_checksum(e)>'
+            actual_err = f'actual: <{display_checksum(a)}>'
+            raise ValueError(f'{source_err} ({expected_err} {actual_err})')
+
+
+def process(patch, out, *sources, header=True):
+    names = list(sources)
+    sources = [contents(s) for s in names]
     with open(patch, 'rb') as f:
-        if raw(3, f) != b'LZP':
-            raise ValueError('bad signature')
-        source_count = byte(f)
-        checksums = [quad(f) for _ in range(source_count)]
-        destination = RAMPatchStream(sources, checksums)
+        if header:
+            _verify(f, names, [compute_checksum(s) for s in sources])
+        destination = RAMPatchStream(sources)
         while command(f, destination, byte(f)):
             pass
     destination.dump(out)

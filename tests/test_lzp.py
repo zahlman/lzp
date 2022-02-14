@@ -32,44 +32,34 @@ FILES = {
         "E0 E1 E2 E3 E4 E5 E6 E7 E8 E9 EA EB EC ED EE EF",
         "F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 FA"
     ),
-    # the corresponding value is equivalent to 104 (modulo 251).
-    # When used for movement, we therefore move 105 steps.
-    'bignum_8.bin': ("80 81 82 83 84 85 86 07",),
     # Example patch files, to test header-check and commands.
-    'forward_18.bin': (
+    'header_8.bin': (
         "4C 5A 50 01", # LZP 1 source
-        "3A 3F 7A 90", # checksum for count_251
-        "02 80 81 82 83 84 85 86 07 00" # forward that many bytes and copy 2
+        "3A 3F 7A 90" # checksum for count_251
+    ),
+    'forward_10.bin': (
+        # forward 0xe182840608080 + 1 bytes, then copy 2
+        # that is equivalent to 105 (modulo 251).
+        "02 80 81 82 83 84 85 86 07 00", # forward that many bytes and copy 2
     ),
     'fresult_2.bin': ("69 6A",),
-    'backward_18.bin': (
-        "4C 5A 50 01", # LZP 1 source
-        "3A 3F 7A 90", # checksum for count_251
-        "82 80 81 82 83 84 85 86 07 00" # forward that many bytes and copy 2
+    'backward_10.bin': (
+        # backward 0xe182840608080 + 1 bytes, then copy 2
+        # that is equivalent to 105 (modulo 251).
+        "82 80 81 82 83 84 85 86 07 00", # forward that many bytes and copy 2
     ),
     'bresult_2.bin': ("92 93",),
-    'earlyend_18.bin': (
-        "4C 5A 50 01", # LZP 1 source
-        "3A 3F 7A 90", # checksum for count_251
-        "00 82 80 81 82 83 84 85 86 07" # end of stream before command
+    'earlyend_10.bin': (
+        "00 82 80 81 82 83 84 85 86 07", # end of stream before command
     ),
     'eresult_0.bin': (),
-    'blockcopy_12.bin': (
-        "4C 5A 50 01", # LZP 1 source
-        "3A 3F 7A 90", # checksum for count_251
-        "80 FA 01 00" # copy 250+1 bytes, then done
-    ),
-    'copysingle_15.bin': (
-        "4C 5A 50 01", # LZP 1 source
-        "3A 3F 7A 90", # checksum for count_251
-        "01 4C 01 5A 01 50 00" # copy three literal bytes one at a time
-    ),
+    'blockcopy_4.bin': ("80 FA 01 00",), # copy 250+1 bytes, then done
+    # copy three literal bytes one at a time
+    'copysingle_7.bin': ("01 4C 01 5A 01 50 00",),
+    # copy three bytes
+    'copybatch_6.bin': ("81 00 4C 5A 50 00",),
+    # either way, this should be the result
     'firstthree_3.bin': ("4C 5A 50",),
-    'copybatch_14.bin': (
-        "4C 5A 50 01", # LZP 1 source
-        "3A 3F 7A 90", # checksum for count_251
-        "81 00 4C 5A 50 00" # copy three bytes
-    ),
 }
 
 
@@ -92,41 +82,29 @@ def _check_equal_files(a, b):
     assert ad == bd
 
 
-def test_make_stream(setup_dir):
-    RAMPatchStream(('count_251.bin',), (977238672,))
-    with raises(ValueError):
-        RAMPatchStream(('count_251.bin',), (0,))
-
-
-def test_big_number(setup_dir):
-    patcher = RAMPatchStream(('count_251.bin',), (977238672,))
-    with open('bignum_8.bin', 'rb') as f:
-        assert number(f, 0) == 0xe182840608080
-
-
 def test_wrong_file(setup_dir):
     with raises(ValueError):
-        process('forward_18.bin', 'out.bin')
+        process('header_8.bin', 'out.bin')
     with raises(ValueError):
-        process('forward_18.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
+        process('header_8.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
     with raises(ValueError):
-        process('forward_18.bin', 'out.bin', 'forward_18.bin')
+        process('header_8.bin', 'out.bin', 'forward_10.bin')
 
 
 @parametrize("patch,expected", (
     # move forward command
-    ('forward_18.bin', 'fresult_2.bin'),
+    ('forward_10.bin', 'fresult_2.bin'),
     # move backward command
-    ('backward_18.bin', 'bresult_2.bin'),
+    ('backward_10.bin', 'bresult_2.bin'),
     # end command not at end of file
-    ('earlyend_18.bin', 'eresult_0.bin'),
+    ('earlyend_10.bin', 'eresult_0.bin'),
     # block copy
-    ('blockcopy_12.bin', 'count_251.bin'),
+    ('blockcopy_4.bin', 'count_251.bin'),
     # 3 literal bytes, one at a time
-    ('copysingle_15.bin', 'firstthree_3.bin'),
+    ('copysingle_7.bin', 'firstthree_3.bin'),
     # 3 literal bytes, as a group
-    ('copybatch_14.bin', 'firstthree_3.bin')
+    ('copybatch_6.bin', 'firstthree_3.bin')
 ))
 def test_patch(setup_dir, patch, expected):
-    process(patch, 'out.bin', 'count_251.bin')
+    process(patch, 'out.bin', 'count_251.bin', header=False)
     _check_equal_files('out.bin', expected)
