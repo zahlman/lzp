@@ -9,6 +9,10 @@ from lzp import __version__
 from lzp.decode import number, process, RAMPatchStream
 
 
+def test_version():
+    assert __version__ == '0.1.0'
+
+
 FILES = {
     'count_251.bin': (
         "00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F",
@@ -126,7 +130,3 @@ def test_wrong_file(setup_dir):
 def test_patch(setup_dir, patch, expected):
     process(patch, 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', expected)
-
-
-def test_version():
-    assert __version__ == '0.1.0'
