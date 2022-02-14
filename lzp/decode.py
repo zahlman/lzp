@@ -55,8 +55,8 @@ byte = partial(_data, 1)
 quad = partial(_data, 4)
 
 
-def number(source, result):
-    shift, more = 0, 0x80
+def number(source):
+    result, shift, more = 0, 0, 0x80
     while more:
         b = byte(source)
         more, value = b & 0x80, b & 0x7f
@@ -69,14 +69,14 @@ def command(source, destination, value):
     direction, value = value & 0x80, value & 0x7f
     if value == 0:
         if direction:
-            destination.copy(number(source, 1))
+            destination.copy(number(source) + 1)
         else:
             return False
     elif value == 1:
-        amount = number(source, 3) if direction else 1
+        amount = number(source) + 3 if direction else 1
         destination.append(raw(amount, source))
     else:
-        destination.move(number(source, 1) * (-1 if direction else 1))
+        destination.move((number(source) + 1) * (-1 if direction else 1))
         destination.copy(value)
     return True
 
