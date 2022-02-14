@@ -5,8 +5,7 @@ from pytest import fixture, mark, raises
 parametrize = mark.parametrize
 del mark
 # current package
-from lzp import __version__, do_decode, do_encode
-from lzp.decode import number, RAMPatchStream
+from lzp import __version__, decode, encode
 
 
 def test_version():
@@ -115,11 +114,11 @@ def _check_equal_files(a, b):
 
 def test_wrong_file(setup_dir):
     with raises(ValueError):
-        do_decode('header_8.bin', 'out.bin')
+        decode('header_8.bin', 'out.bin')
     with raises(ValueError):
-        do_decode('header_8.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
+        decode('header_8.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
     with raises(ValueError):
-        do_decode('header_8.bin', 'out.bin', 'forward_10.bin')
+        decode('header_8.bin', 'out.bin', 'forward_10.bin')
 
 
 @parametrize("patch,expected", (
@@ -137,7 +136,7 @@ def test_wrong_file(setup_dir):
     ('copybatch_6.bin', 'firstthree_3.bin')
 ))
 def test_apply(setup_dir, patch, expected):
-    do_decode(patch, 'out.bin', 'count_251.bin', header=False)
+    decode(patch, 'out.bin', 'count_251.bin', header=False)
     _check_equal_files('out.bin', expected)
 
 
@@ -147,5 +146,5 @@ def test_apply(setup_dir, patch, expected):
     ('mostlyzero_251.bin', 'zeropatch_12.bin')
 ))
 def test_compress(setup_dir, source, expected):
-    do_encode('out.bin', source)
+    encode('out.bin', source)
     _check_equal_files('out.bin', expected)
