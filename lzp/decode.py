@@ -99,13 +99,19 @@ def _verify(f, names, actual):
             raise ValueError(f'{source_err} ({expected_err} {actual_err})')
 
 
-def process(patch, out, *sources, header=True):
-    names = list(sources)
+def process(patch_name, patched_name, *source_names, header=True):
+    """Apply a patch.
+    `patch_name` -> path to the patch being applied.
+    `patched__name` -> path to write as the patched result.
+    `source_names` -> paths to input sources that are being patched.
+    `header` -> whether the patch contains a header.
+    """
+    names = list(source_names)
     sources = [contents(s) for s in names]
-    with open(patch, 'rb') as f:
+    with open(patch_name, 'rb') as patch:
         if header:
-            _verify(f, names, [compute_checksum(s) for s in sources])
+            _verify(patch, names, [compute_checksum(s) for s in sources])
         destination = RAMPatchStream(sources)
-        while command(f, destination, byte(f)):
+        while command(patch, destination, byte(patch)):
             pass
-    destination.dump(out)
+    destination.dump(patched_name)
