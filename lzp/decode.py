@@ -1,6 +1,7 @@
 # standard library
 from functools import partial
-from zlib import adler32 as compute_checksum
+# current package
+from . import compute_checksum, contents
 
 
 def display_checksum(value):
@@ -40,11 +41,6 @@ def raw(amount, stream):
     if len(data) < amount:
         raise IOError("premature end of stream")
     return data
-
-
-def contents(filename):
-    with open(filename, 'rb') as f:
-        return f.read()
 
 
 def _data(amount, stream):
