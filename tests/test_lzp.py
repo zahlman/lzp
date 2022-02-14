@@ -112,7 +112,7 @@ def test_forward(setup_dir):
     _check_equal_files('out.bin', 'fresult_2.bin')
 
 
-def test_forward(setup_dir):
+def test_backward(setup_dir):
     process('backward_18.bin', 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', 'bresult_2.bin')
 
