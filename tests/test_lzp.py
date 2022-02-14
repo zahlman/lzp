@@ -40,6 +40,28 @@ FILES = {
         "82 80 81 82 83 84 85 86 87" # forward that many bytes and copy 2
     ),
     'bresult_2.bin': ("92 93",),
+    'earlyend_18.bin': (
+        "4C 5A 50 01", # LZP 1 source
+        "3A 3F 7A 90", # checksum for count_251
+        "00 82 80 81 82 83 84 85 86 87" # end of stream before command
+    ),
+    'eresult_0.bin': (),
+    'blockcopy_11.bin': (
+        "4C 5A 50 01", # LZP 1 source
+        "3A 3F 7A 90", # checksum for count_251
+        "80 FA 01" # copy 250+1 bytes, then done
+    ),
+    'copysingle_14.bin': (
+        "4C 5A 50 01", # LZP 1 source
+        "3A 3F 7A 90", # checksum for count_251
+        "01 4C 01 5A 01 50" # copy three literal bytes one at a time 
+    ),
+    'firstthree_3.bin': ("4C 5A 50",),
+    'copybatch_13.bin': (
+        "4C 5A 50 01", # LZP 1 source
+        "3A 3F 7A 90", # checksum for count_251
+        "81 00 4C 5A 50" # copy three bytes
+    ),
 }
 
 
@@ -91,6 +113,26 @@ def test_forward(setup_dir):
 def test_forward(setup_dir):
     process('backward_17.bin', 'out.bin', 'count_251.bin')
     _check_equal_files('out.bin', 'bresult_2.bin')
+
+
+def test_earlyend(setup_dir):
+    process('earlyend_18.bin', 'out.bin', 'count_251.bin')
+    _check_equal_files('out.bin', 'eresult_0.bin')
+
+
+def test_blockcopy(setup_dir):
+    process('blockcopy_11.bin', 'out.bin', 'count_251.bin')
+    _check_equal_files('out.bin', 'count_251.bin')
+
+
+def test_singlecopy(setup_dir):
+    process('copysingle_14.bin', 'out.bin', 'count_251.bin')
+    _check_equal_files('out.bin', 'firstthree_3.bin')
+
+
+def test_batchcopy(setup_dir):
+    process('copybatch_13.bin', 'out.bin', 'count_251.bin')
+    _check_equal_files('out.bin', 'firstthree_3.bin')
 
 
 def test_version():
