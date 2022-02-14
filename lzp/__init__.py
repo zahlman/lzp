@@ -1,9 +1,5 @@
-from zlib import adler32 as compute_checksum
+from .decode import process as do_decode
+from .encode import process as do_encode
 
 
 __version__ = '0.1.0'
-
-
-def contents(filename):
-    with open(filename, 'rb') as f:
-        return f.read()

@@ -1,7 +1,7 @@
 # standard library
 from functools import partial
 # current package
-from . import compute_checksum, contents
+from .common import compute_checksum, contents
 
 
 def display_checksum(value):

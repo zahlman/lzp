@@ -5,8 +5,8 @@ from pytest import fixture, mark, raises
 parametrize = mark.parametrize
 del mark
 # current package
-from lzp import __version__
-from lzp.decode import number, process, RAMPatchStream
+from lzp import __version__, do_decode, do_encode
+from lzp.decode import number, RAMPatchStream
 
 
 def test_version():
@@ -84,11 +84,11 @@ def _check_equal_files(a, b):
 
 def test_wrong_file(setup_dir):
     with raises(ValueError):
-        process('header_8.bin', 'out.bin')
+        do_decode('header_8.bin', 'out.bin')
     with raises(ValueError):
-        process('header_8.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
+        do_decode('header_8.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
     with raises(ValueError):
-        process('header_8.bin', 'out.bin', 'forward_10.bin')
+        do_decode('header_8.bin', 'out.bin', 'forward_10.bin')
 
 
 @parametrize("patch,expected", (
@@ -105,6 +105,6 @@ def test_wrong_file(setup_dir):
     # 3 literal bytes, as a group
     ('copybatch_6.bin', 'firstthree_3.bin')
 ))
-def test_patch(setup_dir, patch, expected):
-    process(patch, 'out.bin', 'count_251.bin', header=False)
+def test_apply(setup_dir, patch, expected):
+    do_decode(patch, 'out.bin', 'count_251.bin', header=False)
     _check_equal_files('out.bin', expected)
