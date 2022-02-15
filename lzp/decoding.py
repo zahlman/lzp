@@ -5,7 +5,7 @@ from .common import compute_checksum, contents
 
 
 def display_checksum(value):
-    return value.to_bytes(4, 'big').hex(' ', 1)
+    return value.to_bytes(4, 'little').hex(' ', 1)
 
 
 class RAMPatchStream:
@@ -44,7 +44,7 @@ def raw(amount, stream):
 
 
 def _data(amount, stream):
-    return int.from_bytes(raw(amount, stream), 'big')
+    return int.from_bytes(raw(amount, stream), 'little')
 
 
 byte = partial(_data, 1)
@@ -52,7 +52,7 @@ quad = partial(_data, 4)
 
 
 def number(source):
-    result, shift, more = 0, 0, 0x80
+    result, shift, more = 0, 0, 0x80 # always read at least one byte
     while more:
         b = byte(source)
         more, value = b & 0x80, b & 0x7f
@@ -90,7 +90,7 @@ def _verify(f, names, actual):
     for name, a, e in zip(names, actual, expected):
         if a != e:
             source_err = f'bad checksum for {name}'
-            expected_err = f'expected: <display_checksum(e)>'
+            expected_err = f'expected: <{display_checksum(e)}>'
             actual_err = f'actual: <{display_checksum(a)}>'
             raise ValueError(f'{source_err} ({expected_err} {actual_err})')
 

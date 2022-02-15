@@ -80,13 +80,16 @@ class RAMPatchBuffer:
                 size, best_position = candidate_size, position
             increment >>= 1
         # Set up for next match.
-        self._read_position = best_position
+        offset = self._signed_distance(best_position)
+        self._read_position = best_position + size
         self._write_position += size
-        return size, self._signed_distance(best_position)
+        return size, offset
 
 
 def make_count(value):
-    result = [] 
+    if not value:
+        return b'\x00'
+    result = []
     while value:
         b, value = value & 0x7f, value >> 7
         result.append((b | 0x80) if value else b)
@@ -112,7 +115,7 @@ def encode_copy(size, distance):
 
 
 def write(out, buf):
-    literal = [] 
+    literal = []
     while buf.remaining:
         size, distance_or_literal = buf.search()
         if not size:

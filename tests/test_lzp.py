@@ -1,5 +1,6 @@
 # standard library
 from os import chdir
+from random import randrange
 # test framework
 from pytest import fixture, mark, raises
 parametrize = mark.parametrize
@@ -32,9 +33,10 @@ FILES = {
         "F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 FA"
     ),
     # Example patch files, to test header-check and commands.
-    'header_8.bin': (
+    'header_9.bin': (
         "4C 5A 50 01", # LZP 1 source
-        "3A 3F 7A 90" # checksum for count_251
+        "90 7A 3F 3A", # checksum for count_251
+        "00" # no commands
     ),
     'forward_10.bin': (
         # forward 0xe182840608080 + 1 bytes, then copy 2
@@ -101,6 +103,9 @@ def setup_dir(tmp_path):
         data = bytes.fromhex(' '.join(data))
         assert len(data) == int(count)
         (tmp_path / name).write_bytes(data)
+    # Also make a random file for acceptance testing.
+    random_data = bytes([randrange(256) for _ in range(4000)])
+    (tmp_path / 'random_4000.bin').write_bytes(random_data)
     chdir(tmp_path)
 
 
@@ -113,12 +118,13 @@ def _check_equal_files(a, b):
 
 
 def test_wrong_file(setup_dir):
+    decode('header_9.bin', 'out.bin', 'count_251.bin')
     with raises(ValueError):
-        decode('header_8.bin', 'out.bin')
+        decode('header_9.bin', 'out.bin')
     with raises(ValueError):
-        decode('header_8.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
+        decode('header_9.bin', 'out.bin', 'count_251.bin', 'count_251.bin')
     with raises(ValueError):
-        decode('header_8.bin', 'out.bin', 'forward_10.bin')
+        decode('header_9.bin', 'out.bin', 'forward_10.bin')
 
 
 @parametrize("patch,expected", (
@@ -148,3 +154,12 @@ def test_apply(setup_dir, patch, expected):
 def test_compress(setup_dir, source, expected):
     encode('out.bin', source)
     _check_equal_files('out.bin', expected)
+
+
+# test that we can make a patch and apply it to get the right result.
+def test_roundtrip(setup_dir):
+    encode('patch.bin', 'random_4000.bin', 'count_251.bin')
+    with raises(AssertionError):
+        _check_equal_files('patch.bin', 'random_4000.bin')
+    decode('patch.bin', 'patched.bin', 'count_251.bin')
+    _check_equal_files('patched.bin', 'random_4000.bin')
